@@ -155,6 +155,7 @@ namespace Lasso.Tests
 
             Assert.That(lastResult, Is.EqualTo(iterations));
             TimeSpan max_acceptable = TimeSpan.FromSeconds(1);
+            Assert.That(sw.Elapsed, Is.Not.EqualTo(TimeSpan.Zero));
             Assert.That(sw.Elapsed, Is.LessThan(max_acceptable));
         }
 
