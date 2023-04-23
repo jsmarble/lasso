@@ -123,7 +123,7 @@ namespace Lasso.Tests
         }
 
         [Test]
-        public async Task Dispose_With_Pending_Calls_Push()
+        public void Dispose_With_Pending_Calls_Push()
         {
             UsageRequest req = new UsageRequest
             {
@@ -149,7 +149,7 @@ namespace Lasso.Tests
         }
 
         [Test]
-        public async Task Dispose_Without_Pending_Does_Not_Throw_Exception()
+        public void Dispose_Without_Pending_Does_Not_Throw_Exception()
         {
             UsageRequest req = new UsageRequest
             {

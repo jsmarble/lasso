@@ -6,18 +6,22 @@ namespace Lasso.Tests
     public class RedisUsageManagerTests
     {
         IConnectionMultiplexer muxer;
+        IRedisKeyBuilder keyBuilder;
+        IRelativeExpirationStrategy expirationStrategy;
 
         [SetUp]
         public void Setup()
         {
             //Need a working Redis server to connect to
             muxer = ConnectionMultiplexer.Connect("10.0.2.12:6379");
+            keyBuilder = new DailyUtcRedisKeyBuilder();
+            expirationStrategy = new TimeSpanExpirationStrategy(TimeSpan.FromHours(1));
         }
 
         [Test]
         public void Get_Returns_Correct_Value()
         {
-            RedisUsageManager usageManager = new RedisUsageManager(muxer, new DailyUtcRedisKeyBuilder());
+            RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expirationStrategy);
             string resource = "field_reindex";
             string context = Guid.NewGuid().ToString();
             int quota = 10;
@@ -38,7 +42,7 @@ namespace Lasso.Tests
         [Test]
         public void Increment_Works_No_Data()
         {
-            RedisUsageManager usageManager = new RedisUsageManager(muxer, new DailyUtcRedisKeyBuilder());
+            RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expirationStrategy);
             string resource = "field_reindex";
             string context = Guid.NewGuid().ToString();
             int quota = 10;
@@ -55,7 +59,7 @@ namespace Lasso.Tests
         [Test]
         public void Increment_Zero_Does_Not_Change_Value()
         {
-            RedisUsageManager usageManager = new RedisUsageManager(muxer, new DailyUtcRedisKeyBuilder());
+            RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expirationStrategy);
             string resource = "field_reindex";
             string context = Guid.NewGuid().ToString();
             int quota = 10;
@@ -76,7 +80,7 @@ namespace Lasso.Tests
         [Test]
         public void Decrement_Works_No_Data()
         {
-            RedisUsageManager usageManager = new RedisUsageManager(muxer, new DailyUtcRedisKeyBuilder());
+            RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expirationStrategy);
             string resource = "field_reindex";
             string context = Guid.NewGuid().ToString();
             int quota = 10;
@@ -93,7 +97,7 @@ namespace Lasso.Tests
         [Test]
         public void Reset_Works_No_Data()
         {
-            RedisUsageManager usageManager = new RedisUsageManager(muxer, new DailyUtcRedisKeyBuilder());
+            RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expirationStrategy);
             string resource = "field_reindex";
             string context = Guid.NewGuid().ToString();
             int quota = 10;
@@ -110,7 +114,7 @@ namespace Lasso.Tests
         [Test]
         public void Reset_Sets_Value_To_Zero()
         {
-            RedisUsageManager usageManager = new RedisUsageManager(muxer, new DailyUtcRedisKeyBuilder());
+            RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expirationStrategy);
             string resource = "field_reindex";
             string context = Guid.NewGuid().ToString();
             int quota = 10;
@@ -131,7 +135,7 @@ namespace Lasso.Tests
         [Test]
         public void One_Thousand_Increments_Perf_Test()
         {
-            RedisUsageManager usageManager = new RedisUsageManager(muxer, new DailyUtcRedisKeyBuilder());
+            RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expirationStrategy);
             string resource = "send_message";
             string context = Guid.NewGuid().ToString();
             int quota = 1200;
@@ -162,28 +166,28 @@ namespace Lasso.Tests
         [Test]
         public void Get_Throws_ArgumentNullExcept_On_Null_Request()
         {
-            RedisUsageManager usageManager = new RedisUsageManager(muxer, new DailyUtcRedisKeyBuilder());
+            RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expirationStrategy);
             Assert.ThrowsAsync<ArgumentNullException>(async () => await usageManager.GetAsync(null));
         }
 
         [Test]
         public void Increment_Throws_ArgumentNullExcept_On_Null_Request()
         {
-            RedisUsageManager usageManager = new RedisUsageManager(muxer, new DailyUtcRedisKeyBuilder());
+            RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expirationStrategy);
             Assert.ThrowsAsync<ArgumentNullException>(async () => await usageManager.IncrementAsync(null));
         }
 
         [Test]
         public void Decrement_Throws_ArgumentNullExcept_On_Null_Request()
         {
-            RedisUsageManager usageManager = new RedisUsageManager(muxer, new DailyUtcRedisKeyBuilder());
+            RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expirationStrategy);
             Assert.ThrowsAsync<ArgumentNullException>(async () => await usageManager.DecrementAsync(null));
         }
 
         [Test]
         public void Reset_Throws_ArgumentNullExcept_On_Null_Request()
         {
-            RedisUsageManager usageManager = new RedisUsageManager(muxer, new DailyUtcRedisKeyBuilder());
+            RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expirationStrategy);
             Assert.ThrowsAsync<ArgumentNullException>(async () => await usageManager.ResetAsync(null));
         }
     }

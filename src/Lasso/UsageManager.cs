@@ -1,4 +1,5 @@
 ﻿using StackExchange.Redis;
+using System.Diagnostics;
 
 namespace Lasso
 {
@@ -7,7 +8,24 @@ namespace Lasso
         private readonly IDatabase db;
         private readonly IRedisKeyBuilder keyBuilder;
 
-        public RedisUsageManager(IConnectionMultiplexer muxer, IRedisKeyBuilder redisKeyBuilder)
+        private readonly IFixedExpirationStrategy fixedExpirationStrategy;
+        private readonly IRelativeExpirationStrategy relativeExpirationStrategy;
+
+        public RedisUsageManager(IConnectionMultiplexer muxer, IRedisKeyBuilder redisKeyBuilder, IRelativeExpirationStrategy expirationStrategy)
+            : this(muxer, redisKeyBuilder)
+        {
+            if (expirationStrategy == null) throw new ArgumentNullException(nameof(expirationStrategy));
+            this.relativeExpirationStrategy = expirationStrategy;
+        }
+
+        public RedisUsageManager(IConnectionMultiplexer muxer, IRedisKeyBuilder redisKeyBuilder, IFixedExpirationStrategy expirationStrategy)
+            : this(muxer, redisKeyBuilder)
+        {
+            if (expirationStrategy == null) throw new ArgumentNullException(nameof(expirationStrategy));
+            this.fixedExpirationStrategy = expirationStrategy;
+        }
+
+        private RedisUsageManager(IConnectionMultiplexer muxer, IRedisKeyBuilder redisKeyBuilder)
         {
             this.db = muxer.GetDatabase();
             this.keyBuilder = redisKeyBuilder;
@@ -19,6 +37,8 @@ namespace Lasso
 
             string key = this.keyBuilder.BuildRedisKey(req);
             long current = (long)(await this.db.HashGetAsync(key, req.Resource));
+            await SetExpirationAsync(key);
+
             return new UsageResult
             {
                 Current = current,
@@ -34,6 +54,8 @@ namespace Lasso
 
             string key = this.keyBuilder.BuildRedisKey(req);
             long current = await this.db.HashIncrementAsync(key, req.Resource, increment);
+            await SetExpirationAsync(key);
+
             return new UsageResult
             {
                 Current = current,
@@ -49,6 +71,8 @@ namespace Lasso
 
             string key = this.keyBuilder.BuildRedisKey(req);
             long current = await this.db.HashDecrementAsync(key, req.Resource, decrement);
+            await SetExpirationAsync(key);
+
             return new UsageResult
             {
                 Current = current,
@@ -64,6 +88,8 @@ namespace Lasso
 
             string key = this.keyBuilder.BuildRedisKey(req);
             await this.db.HashSetAsync(key, req.Resource, init);
+            await SetExpirationAsync(key);
+
             return new UsageResult
             {
                 Current = init,
@@ -71,6 +97,26 @@ namespace Lasso
                 Quota = req.Quota,
                 Context = req.Context,
             };
+        }
+
+        private async Task SetExpirationAsync(string key)
+        {
+            if (relativeExpirationStrategy != null)
+            {
+                if (relativeExpirationStrategy.Expiration == TimeSpan.MaxValue)
+                    await this.db.KeyPersistAsync(key);
+                else
+                    await this.db.KeyExpireAsync(key, relativeExpirationStrategy.Expiration);
+            }
+            else if (fixedExpirationStrategy != null)
+            {
+                if (fixedExpirationStrategy.Expiration == DateTime.MaxValue)
+                    await this.db.KeyPersistAsync(key);
+                else
+                    await this.db.KeyExpireAsync(key, fixedExpirationStrategy.Expiration);
+            }
+            else
+                Trace.TraceWarning("No key expiration strategy provided. Usage keys will persist for the life of the cluster.");
         }
     }
 }
