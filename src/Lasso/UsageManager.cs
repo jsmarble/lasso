@@ -106,7 +106,7 @@ namespace Lasso
                 if (relativeExpirationStrategy.Expiration == TimeSpan.MaxValue)
                     await this.db.KeyPersistAsync(key);
                 else
-                    await this.db.KeyExpireAsync(key, relativeExpirationStrategy.Expiration);
+                    await this.db.KeyExpireAsync(key, relativeExpirationStrategy.Expiration, relativeExpirationStrategy.Sliding ? ExpireWhen.Always : ExpireWhen.HasNoExpiry);
             }
             else if (fixedExpirationStrategy != null)
             {
