@@ -15,7 +15,7 @@ namespace Lasso.Tests
             //Need a working Redis server to connect to
             muxer = ConnectionMultiplexer.Connect("10.0.2.12:6379");
             keyBuilder = new DailyUtcRedisKeyBuilder();
-            expirationStrategy = new TimeSpanExpirationStrategy(TimeSpan.FromHours(1));
+            expirationStrategy = new TimeSpanExpirationStrategy(TimeSpan.FromHours(1), false);
         }
 
         [Test]
@@ -189,6 +189,31 @@ namespace Lasso.Tests
         {
             RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expirationStrategy);
             Assert.ThrowsAsync<ArgumentNullException>(async () => await usageManager.ResetAsync(null));
+        }
+
+        [Test]
+        public async Task GetExpiration_Returns_Valid_Result()
+        {
+            IRelativeExpirationStrategy expStr = new TimeSpanExpirationStrategy(TimeSpan.FromSeconds(88), false);
+            RedisUsageManager usageManager = new RedisUsageManager(muxer, keyBuilder, expStr);
+            string resource = "field_reindex";
+            string context = Guid.NewGuid().ToString();
+            int quota = 10;
+            UsageRequest req = new UsageRequest
+            {
+                Resource = resource,
+                Quota = quota,
+                Context = context
+            };
+            DateTime minValidExpiration = DateTime.UtcNow.Add(expStr.Expiration).AddSeconds(-5);
+            DateTime maxValidExpiration = DateTime.UtcNow.Add(expStr.Expiration).AddSeconds(5);
+
+            var result = await usageManager.IncrementAsync(req);
+            Assert.That(result.Current, Is.EqualTo(1));
+            var exp = await usageManager.GetExpirationAsync(req);
+
+            Assert.That(exp, Is.AtMost(maxValidExpiration));
+            Assert.That(exp, Is.AtLeast(minValidExpiration));
         }
     }
 }
