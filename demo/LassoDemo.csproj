@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Lasso\Lasso.csproj" />
+    <ProjectReference Include="..\src\Lasso\Lasso.csproj" />
   </ItemGroup>
 
 </Project>
