@@ -99,6 +99,14 @@ namespace Lasso
             };
         }
 
+        public async Task<DateTime?> GetExpirationAsync(UsageRequest req)
+        {
+            if (req == null) throw new ArgumentNullException(nameof(req));
+
+            string key = this.keyBuilder.BuildRedisKey(req);
+            return await this.db.KeyExpireTimeAsync(key);
+        }
+
         private async Task SetExpirationAsync(string key)
         {
             if (relativeExpirationStrategy != null)

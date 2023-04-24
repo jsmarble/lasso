@@ -27,7 +27,8 @@ while (true)
 {
     Console.ReadLine();
     UsageResult res = await usageManager.IncrementAsync(usage);
-    Console.WriteLine($"[Usage: {res.Current} / {res.Quota}]");
+    var exp = await usageManager.GetExpirationAsync(usage);
+    Console.WriteLine($"[Usage: {res.Current} / {res.Quota}, Resets in {exp.Value.Subtract(DateTime.UtcNow).TotalSeconds} seconds]");
 
     if (res.Current <= res.Quota)
         Console.WriteLine(Guid.NewGuid().ToString());
