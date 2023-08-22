@@ -23,21 +23,30 @@ jobs:
   test:
     docker:
       - image: mcr.microsoft.com/dotnet/sdk:6.0-alpine
-
+    services:
+      - docker
     steps:
       - checkout
-
+      - setup_remote_docker:
+          version: 20.10.9
+          docker_layer_caching: true
+      - run:
+          name: Start Redis Docker Container
+          command: docker run -d --name redis-container redis
       - run:
           name: Restore Dependencies
           command: |
             cd src/Lasso.Tests
             dotnet restore
-
       - run:
           name: Test
           command: |
             cd src/Lasso.Tests
             dotnet test
+      - run:
+          name: Stop Redis Docker Container
+          command: docker stop redis-container
+
 
   semver:
     docker:
