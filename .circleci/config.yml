@@ -5,6 +5,7 @@ jobs:
     docker:
       - image: mcr.microsoft.com/dotnet/sdk:7.0-alpine
 
+    working_directory: src/Lasso
     steps:
       - checkout
 
@@ -20,6 +21,7 @@ jobs:
     docker:
       - image: mcr.microsoft.com/dotnet/sdk:7.0-alpine
 
+    working_directory: src/Lasso
     steps:
       - checkout
 
@@ -56,6 +58,7 @@ jobs:
     docker:
       - image: mcr.microsoft.com/dotnet/sdk:7.0-alpine
 
+    working_directory: src/Lasso
     steps:
       - run:
           name: Install GitVersion and ssh
