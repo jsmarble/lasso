@@ -5,33 +5,39 @@ jobs:
     docker:
       - image: mcr.microsoft.com/dotnet/sdk:7.0-alpine
 
-    working_directory: src/Lasso
     steps:
       - checkout
 
       - run:
           name: Restore Dependencies
-          command: dotnet restore
+          command: |
+            cd src/Lasso
+            dotnet restore
 
       - run:
           name: Build
-          command: dotnet build $lib
+          command: |
+            cd src/Lasso
+            dotnet build $lib
 
   test:
     docker:
       - image: mcr.microsoft.com/dotnet/sdk:7.0-alpine
 
-    working_directory: src/Lasso
     steps:
       - checkout
 
       - run:
           name: Restore Dependencies
-          command: dotnet restore
+          command: |
+            cd src/Lasso.Tests
+            dotnet restore
 
       - run:
           name: Test
-          command: dotnet test
+          command: |
+            cd src/Lasso.Tests
+            dotnet test
 
   semver:
     docker:
@@ -58,7 +64,6 @@ jobs:
     docker:
       - image: mcr.microsoft.com/dotnet/sdk:7.0-alpine
 
-    working_directory: src/Lasso
     steps:
       - run:
           name: Install GitVersion and ssh
@@ -74,7 +79,9 @@ jobs:
 
       - run:
           name: Restore Dependencies
-          command: dotnet restore
+          command: |
+            cd src/Lasso
+            dotnet restore
 
       - run:
           name: Get Version
@@ -89,9 +96,9 @@ jobs:
           name: Build and Pack
           shell: /bin/bash
           command: |
+            cd src/Lasso
             export PATH="$PATH:/root/.dotnet/tools"
             dotnet-gitversion /updateprojectfiles
-            rm -f bin/Debug/*.nupkg
             dotnet pack
             dotnet nuget push src/Lasso/bin/Debug/*.nupkg -s https://api.nuget.org/v3/index.json -k $nuget_api_key
 
