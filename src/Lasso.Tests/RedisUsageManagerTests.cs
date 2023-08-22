@@ -9,11 +9,13 @@ namespace Lasso.Tests
         IRedisKeyBuilder keyBuilder;
         IRelativeExpirationStrategy expirationStrategy;
 
+        const string REDIS_URI = "127.0.0.1:6379";
+
         [SetUp]
         public void Setup()
         {
             //Need a working Redis server to connect to
-            muxer = ConnectionMultiplexer.Connect("10.0.2.12:6379");
+            muxer = ConnectionMultiplexer.Connect(REDIS_URI);
             keyBuilder = new DailyUtcRedisKeyBuilder();
             expirationStrategy = new TimeSpanExpirationStrategy(TimeSpan.FromHours(1), false);
         }
