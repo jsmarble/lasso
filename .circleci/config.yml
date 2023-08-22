@@ -106,7 +106,7 @@ jobs:
             export PATH="$PATH:/root/.dotnet/tools"
             dotnet-gitversion /updateprojectfiles
             dotnet pack
-            dotnet nuget push src/Lasso/bin/Debug/*.nupkg -s https://api.nuget.org/v3/index.json -k $nuget_api_key
+            dotnet nuget push bin/Debug/*.nupkg -s https://api.nuget.org/v3/index.json -k $nuget_api_key
 
       - run:
           name: Tag Release and Push Changes
