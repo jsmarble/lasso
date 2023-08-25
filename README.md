@@ -1,3 +1,5 @@
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/jsmarble/lasso/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/jsmarble/lasso/tree/main)
+
 # Lasso
 
 A usage quota wrangler.
