@@ -1,8 +1,10 @@
-﻿namespace Lasso
+﻿using System;
+
+namespace Lasso
 {
     public interface IRelativeExpirationStrategy
     {
-        public TimeSpan Expiration { get; }
-        public bool Sliding { get; }
+        TimeSpan Expiration { get; }
+        bool Sliding { get; }
     }
 }
