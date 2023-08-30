@@ -17,8 +17,9 @@ namespace Lasso.Tests
             };
             int increments = 10;
 
+
             var usageManagerMock = new Mock<IUsageManager>();
-            usageManagerMock.Setup(x => x.IncrementAsync(req, increments));
+            usageManagerMock.Setup(x => x.IncrementAsync(req, increments, default(CancellationToken)));
 
             using (BatchedUsageManager bum = new BatchedUsageManager(usageManagerMock.Object, req))
             {
@@ -44,7 +45,7 @@ namespace Lasso.Tests
             int decrements = 10;
 
             var usageManagerMock = new Mock<IUsageManager>();
-            usageManagerMock.Setup(x => x.IncrementAsync(req, -decrements));
+            usageManagerMock.Setup(x => x.IncrementAsync(req, -decrements, default(CancellationToken)));
 
             using (BatchedUsageManager bum = new BatchedUsageManager(usageManagerMock.Object, req))
             {
@@ -71,7 +72,7 @@ namespace Lasso.Tests
             int decrements = 10;
 
             var usageManagerMock = new Mock<IUsageManager>();
-            usageManagerMock.Setup(x => x.IncrementAsync(req, increments - decrements));
+            usageManagerMock.Setup(x => x.IncrementAsync(req, increments - decrements, default(CancellationToken)));
 
             using (BatchedUsageManager bum = new BatchedUsageManager(usageManagerMock.Object, req))
             {
@@ -102,8 +103,8 @@ namespace Lasso.Tests
             int decrements = 10;
 
             var usageManagerMock = new Mock<IUsageManager>();
-            usageManagerMock.Setup(x => x.IncrementAsync(req, increments));
-            usageManagerMock.Setup(x => x.IncrementAsync(req, -decrements));
+            usageManagerMock.Setup(x => x.IncrementAsync(req, increments, default(CancellationToken)));
+            usageManagerMock.Setup(x => x.IncrementAsync(req, -decrements, default(CancellationToken)));
 
             using (BatchedUsageManager bum = new BatchedUsageManager(usageManagerMock.Object, req))
             {
@@ -134,7 +135,7 @@ namespace Lasso.Tests
             int increments = 10;
 
             var usageManagerMock = new Mock<IUsageManager>();
-            usageManagerMock.Setup(x => x.IncrementAsync(req, increments));
+            usageManagerMock.Setup(x => x.IncrementAsync(req, increments, default(CancellationToken)));
 
             using (BatchedUsageManager bum = new BatchedUsageManager(usageManagerMock.Object, req))
             {
@@ -179,7 +180,7 @@ namespace Lasso.Tests
 
             Stopwatch sw = Stopwatch.StartNew();
             var usageManagerMock = new Mock<IUsageManager>();
-            usageManagerMock.Setup(x => x.IncrementAsync(req, increments));
+            usageManagerMock.Setup(x => x.IncrementAsync(req, increments, default(CancellationToken)));
 
             using (BatchedUsageManager bum = new BatchedUsageManager(usageManagerMock.Object, req))
             {

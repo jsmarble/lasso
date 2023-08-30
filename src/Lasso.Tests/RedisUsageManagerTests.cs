@@ -9,7 +9,7 @@ namespace Lasso.Tests
         IRedisKeyBuilder keyBuilder;
         IRelativeExpirationStrategy expirationStrategy;
 
-        const string REDIS_URI = "127.0.0.1:6379";
+        const string REDIS_URI = "10.0.2.23:6379";
 
         [SetUp]
         public void Setup()
@@ -160,7 +160,7 @@ namespace Lasso.Tests
             sw.Stop();
 
             Assert.That(lastResult, Is.EqualTo(iterations));
-            TimeSpan max_acceptable = TimeSpan.FromSeconds(1);
+            TimeSpan max_acceptable = TimeSpan.FromSeconds(2);
             Assert.That(sw.Elapsed, Is.Not.EqualTo(TimeSpan.Zero));
             Assert.That(sw.Elapsed, Is.LessThan(max_acceptable));
         }

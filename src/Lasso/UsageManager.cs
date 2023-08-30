@@ -1,42 +1,58 @@
-﻿using StackExchange.Redis;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using StackExchange.Redis;
+using System.Data.Common;
 using System.Diagnostics;
 
 namespace Lasso
 {
-    public class RedisUsageManager : IUsageManager
+    public class RedisUsageManager : IUsageManager, IDisposable
     {
-        private readonly IDatabase db;
+        private volatile ConnectionMultiplexer connection;
+        private IDatabase cache;
+        private bool disposedValue;
+        private readonly SemaphoreSlim connectionLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
+
+        private readonly LassoOptions options;
         private readonly IRedisKeyBuilder keyBuilder;
 
         private readonly IFixedExpirationStrategy fixedExpirationStrategy;
         private readonly IRelativeExpirationStrategy relativeExpirationStrategy;
+        private readonly ILogger logger;
 
-        public RedisUsageManager(IConnectionMultiplexer muxer, IRedisKeyBuilder redisKeyBuilder, IRelativeExpirationStrategy expirationStrategy)
-            : this(muxer, redisKeyBuilder)
+        public RedisUsageManager(IOptions<LassoOptions> options, IRedisKeyBuilder redisKeyBuilder, IRelativeExpirationStrategy expirationStrategy, ILogger logger)
+            : this(options, redisKeyBuilder)
         {
             if (expirationStrategy == null) throw new ArgumentNullException(nameof(expirationStrategy));
             this.relativeExpirationStrategy = expirationStrategy;
+            this.logger = logger;
         }
 
-        public RedisUsageManager(IConnectionMultiplexer muxer, IRedisKeyBuilder redisKeyBuilder, IFixedExpirationStrategy expirationStrategy)
-            : this(muxer, redisKeyBuilder)
+        public RedisUsageManager(IOptions<LassoOptions> options, IRedisKeyBuilder redisKeyBuilder, IFixedExpirationStrategy expirationStrategy)
+            : this(options, redisKeyBuilder)
         {
             if (expirationStrategy == null) throw new ArgumentNullException(nameof(expirationStrategy));
             this.fixedExpirationStrategy = expirationStrategy;
         }
 
-        private RedisUsageManager(IConnectionMultiplexer muxer, IRedisKeyBuilder redisKeyBuilder)
+        private RedisUsageManager(IOptions<LassoOptions> options, IRedisKeyBuilder redisKeyBuilder)
         {
-            this.db = muxer.GetDatabase();
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (redisKeyBuilder == null) throw new ArgumentNullException(nameof(redisKeyBuilder));
+
+            this.options = options.Value;
             this.keyBuilder = redisKeyBuilder;
         }
 
-        public async Task<UsageResult> GetAsync(UsageRequest req)
+        public async Task<UsageResult> GetAsync(UsageRequest req, CancellationToken token = default(CancellationToken))
         {
-            if (req == null) throw new ArgumentNullException(nameof(req));
+            token.ThrowIfCancellationRequested();
+            ArgumentNullThrowHelper.ThrowIfNull(req);
+
+            await ConnectAsync(token);
 
             string key = this.keyBuilder.BuildRedisKey(req);
-            long current = (long)(await this.db.HashGetAsync(key, req.Resource));
+            long current = (long)(await this.cache.HashGetAsync(key, req.Resource));
             await SetExpirationAsync(key);
 
             return new UsageResult
@@ -48,12 +64,15 @@ namespace Lasso
             };
         }
 
-        public async Task<UsageResult> IncrementAsync(UsageRequest req, long increment = 1)
+        public async Task<UsageResult> IncrementAsync(UsageRequest req, long increment = 1, CancellationToken token = default(CancellationToken))
         {
-            if (req == null) throw new ArgumentNullException(nameof(req));
+            token.ThrowIfCancellationRequested();
+            ArgumentNullThrowHelper.ThrowIfNull(req);
+
+            await ConnectAsync(token);
 
             string key = this.keyBuilder.BuildRedisKey(req);
-            long current = await this.db.HashIncrementAsync(key, req.Resource, increment);
+            long current = await this.cache.HashIncrementAsync(key, req.Resource, increment);
             await SetExpirationAsync(key);
 
             return new UsageResult
@@ -65,12 +84,15 @@ namespace Lasso
             };
         }
 
-        public async Task<UsageResult> DecrementAsync(UsageRequest req, long decrement = 1)
+        public async Task<UsageResult> DecrementAsync(UsageRequest req, long decrement = 1, CancellationToken token = default(CancellationToken))
         {
-            if (req == null) throw new ArgumentNullException(nameof(req));
+            token.ThrowIfCancellationRequested();
+            ArgumentNullThrowHelper.ThrowIfNull(req);
+
+            await ConnectAsync(token);
 
             string key = this.keyBuilder.BuildRedisKey(req);
-            long current = await this.db.HashDecrementAsync(key, req.Resource, decrement);
+            long current = await this.cache.HashDecrementAsync(key, req.Resource, decrement);
             await SetExpirationAsync(key);
 
             return new UsageResult
@@ -82,12 +104,15 @@ namespace Lasso
             };
         }
 
-        public async Task<UsageResult> ResetAsync(UsageRequest req, long init = 0)
+        public async Task<UsageResult> ResetAsync(UsageRequest req, long init = 0, CancellationToken token = default(CancellationToken))
         {
-            if (req == null) throw new ArgumentNullException(nameof(req));
+            token.ThrowIfCancellationRequested();
+            ArgumentNullThrowHelper.ThrowIfNull(req);
+
+            await ConnectAsync(token);
 
             string key = this.keyBuilder.BuildRedisKey(req);
-            await this.db.HashSetAsync(key, req.Resource, init);
+            await this.cache.HashSetAsync(key, req.Resource, init);
             await SetExpirationAsync(key);
 
             return new UsageResult
@@ -99,32 +124,100 @@ namespace Lasso
             };
         }
 
-        public async Task<DateTime?> GetExpirationAsync(UsageRequest req)
+        public async Task<DateTime?> GetExpirationAsync(UsageRequest req, CancellationToken token = default(CancellationToken))
         {
-            if (req == null) throw new ArgumentNullException(nameof(req));
+            token.ThrowIfCancellationRequested();
+            ArgumentNullThrowHelper.ThrowIfNull(req);
+
+            await ConnectAsync(token);
 
             string key = this.keyBuilder.BuildRedisKey(req);
-            return await this.db.KeyExpireTimeAsync(key);
+            return await this.cache.KeyExpireTimeAsync(key);
         }
 
-        private async Task SetExpirationAsync(string key)
+        private async Task SetExpirationAsync(string key, CancellationToken token = default(CancellationToken))
         {
+            token.ThrowIfCancellationRequested();
+
+            await ConnectAsync(token);
+
             if (relativeExpirationStrategy != null)
             {
                 if (relativeExpirationStrategy.Expiration == TimeSpan.MaxValue)
-                    await this.db.KeyPersistAsync(key);
+                    await this.cache.KeyPersistAsync(key);
                 else
-                    await this.db.KeyExpireAsync(key, relativeExpirationStrategy.Expiration, relativeExpirationStrategy.Sliding ? ExpireWhen.Always : ExpireWhen.HasNoExpiry);
+                    await this.cache.KeyExpireAsync(key, relativeExpirationStrategy.Expiration, relativeExpirationStrategy.Sliding ? ExpireWhen.Always : ExpireWhen.HasNoExpiry);
             }
             else if (fixedExpirationStrategy != null)
             {
                 if (fixedExpirationStrategy.Expiration == DateTime.MaxValue)
-                    await this.db.KeyPersistAsync(key);
+                    await this.cache.KeyPersistAsync(key);
                 else
-                    await this.db.KeyExpireAsync(key, fixedExpirationStrategy.Expiration);
+                    await this.cache.KeyExpireAsync(key, fixedExpirationStrategy.Expiration);
             }
             else
                 Trace.TraceWarning("No key expiration strategy provided. Usage keys will persist for the life of the cluster.");
+        }
+
+        private async Task ConnectAsync(CancellationToken token = default(CancellationToken))
+        {
+            token.ThrowIfCancellationRequested();
+
+            if (cache != null)
+            {
+                return;
+            }
+
+            await connectionLock.WaitAsync(token);
+            try
+            {
+                if (cache == null)
+                {
+                    if (options.RedisConfigurationOptions != null)
+                    {
+                        connection = await ConnectionMultiplexer.ConnectAsync(options.RedisConfigurationOptions);
+                    }
+                    else
+                    {
+                        connection = await ConnectionMultiplexer.ConnectAsync(options.RedisConfiguration);
+                    }
+
+                    cache = connection.GetDatabase();
+                }
+            }
+            finally
+            {
+                connectionLock.Release();
+            }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    // TODO: dispose managed state (managed objects)
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~RedisUsageManager()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }
