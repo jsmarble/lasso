@@ -1,10 +1,9 @@
 ﻿using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
-namespace Lasso.Extensions.DependencyInjection;
+namespace Lasso;
 
-//*** Josh - this class should be in lasso and 
-public class LassoConfigOptions : IOptions<LassoConfigOptions>
+public class LassoOptions : IOptions<LassoOptions>
 {
     /// <summary>
     /// The configuration used to connect to Redis.
@@ -17,5 +16,5 @@ public class LassoConfigOptions : IOptions<LassoConfigOptions>
     /// </summary>
     public ConfigurationOptions? RedisConfigurationOptions { get; set; }
 
-    LassoConfigOptions IOptions<LassoConfigOptions>.Value => this;
+    LassoOptions IOptions<LassoOptions>.Value => this;
 }
