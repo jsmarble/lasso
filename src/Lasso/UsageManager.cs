@@ -1,8 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using System.Data.Common;
+using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Lasso
 {

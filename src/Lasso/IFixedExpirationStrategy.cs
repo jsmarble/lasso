@@ -1,7 +1,9 @@
-﻿namespace Lasso
+﻿using System;
+
+namespace Lasso
 {
     public interface IFixedExpirationStrategy
     {
-        public DateTime Expiration { get; }
+        DateTime Expiration { get; }
     }
 }

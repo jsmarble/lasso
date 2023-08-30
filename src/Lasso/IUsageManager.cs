@@ -1,4 +1,7 @@
-﻿namespace Lasso
+﻿using System;
+using System.Threading.Tasks;
+
+namespace Lasso
 {
     public interface IUsageManager
     {

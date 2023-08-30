@@ -1,4 +1,6 @@
-﻿namespace Lasso
+﻿using System;
+
+namespace Lasso
 {
     public class TimeSpanExpirationStrategy : IRelativeExpirationStrategy
     {

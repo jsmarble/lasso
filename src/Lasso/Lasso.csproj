@@ -1,15 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <Authors>Joshua Marble</Authors>
     <PackageId>Lasso</PackageId>
     <Description>A usage quota wrangler. 
 Lasso helps keep track of any kind of quotas or metrics by incrementing or decrementing usage. It stores usage metrics, separated by a specified context, as numbers in a Redis Hashset for named resources. This keeps all usage metrics for a particular context together.
     </Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
