@@ -108,7 +108,7 @@ jobs:
             dotnet pack
             
       - store_artifacts:
-          path: bin/Debug/*.nupkg
+          path: src/Lasso/bin/Debug/*.nupkg
           destination: nuget-package
 
       - when:
