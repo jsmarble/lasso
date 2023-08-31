@@ -24,7 +24,7 @@ namespace Lasso.Extensions.DependencyInjection
 
             return new LassoServiceBuilder(services);
         }
-        public static LassoServiceBuilder AddLasso(this IServiceCollection services, Action<LassoConfigOptions> configureOptionsFactory)
+        public static LassoServiceBuilder AddLasso(this IServiceCollection services, Action<LassoOptions> configureOptionsFactory)
         {
             var builder = services.AddLasso();
 
@@ -33,10 +33,10 @@ namespace Lasso.Extensions.DependencyInjection
             // This is also how MS is doing it with their OOO redis implementation - see RedisCache.cs in .net github repo
 
             //services.Configure(configureOptions);
-            LassoConfigOptions configureOptions = new LassoConfigOptions();
+            LassoOptions configureOptions = new LassoOptions();
             configureOptionsFactory(configureOptions);
-            IConnectionMultiplexer? connection = null;
-            if (configureOptions.RedisConfigurationOptions is not null)
+            IConnectionMultiplexer connection = null;
+            if (configureOptions.RedisConfigurationOptions != null)
             {
                 connection = ConnectionMultiplexer.Connect(configureOptions.RedisConfigurationOptions);
             }
@@ -61,7 +61,7 @@ namespace Lasso.Extensions.DependencyInjection
         }
 
         public static LassoServiceBuilder AddLasso(this IServiceCollection services,
-            Action<LassoConfigOptions> configureOptionsFactory,
+            Action<LassoOptions> configureOptionsFactory,
             IRedisKeyBuilder keyBuilder,
             IRelativeExpirationStrategy relativeExpirationStrategy)
         {
@@ -72,7 +72,7 @@ namespace Lasso.Extensions.DependencyInjection
         }
 
         public static LassoServiceBuilder AddLasso(this IServiceCollection services,
-            Action<LassoConfigOptions> configureOptionsFactory,
+            Action<LassoOptions> configureOptionsFactory,
             IRedisKeyBuilder keyBuilder,
             IFixedExpirationStrategy fixedExpirationStrategy)
         {
@@ -83,7 +83,7 @@ namespace Lasso.Extensions.DependencyInjection
         }
 
         public static LassoServiceBuilder AddDefaultLasso(this IServiceCollection services,
-            Action<LassoConfigOptions> configureOptionsFactory)
+            Action<LassoOptions> configureOptionsFactory)
         {
             //todo: can you do relative and static strategies both at the same time?
             return services.AddLasso(configureOptionsFactory)
