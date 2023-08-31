@@ -102,21 +102,40 @@ jobs:
           name: Build and Pack
           shell: /bin/bash
           command: |
-            cd src/Lasso
             export PATH="$PATH:/root/.dotnet/tools"
+            cd src/Lasso.Extensions.DependencyInjection
             dotnet-gitversion /updateprojectfiles
-            dotnet pack
-            dotnet nuget push bin/Debug/*.nupkg -s https://api.nuget.org/v3/index.json -k $nuget_api_key
+            cd ../Lasso
+            dotnet-gitversion /updateprojectfiles
+            mkdir nugetpkg
+            dotnet pack --output nugetpkg
+            
+      - store_artifacts:
+          path: src/Lasso/nugetpkg
+          destination: nuget
 
-      - run:
-          name: Tag Release and Push Changes
-          shell: /bin/bash
-          command: |
-            git branch --set-upstream-to origin/$CIRCLE_BRANCH
-            echo "Tagging release with '$SEMVER'"
-            git tag $SEMVER
-            git push -o ci.skip
-            git push --tags
+      - when:
+          condition:
+            equal: [ main, << pipeline.git.branch >> ]
+          steps:
+            - run:
+                name: Publish NuGet Package
+                shell: /bin/bash
+                command: |
+                  cd src/Lasso
+                  export PATH="$PATH:/root/.dotnet/tools"
+                  echo "Publishing NuGet package..."
+                  dotnet nuget push bin/Debug/*.nupkg -s https://api.nuget.org/v3/index.json -k $nuget_api_key
+
+            - run:
+                name: Tag Release and Push Changes
+                shell: /bin/bash
+                command: |
+                  git branch --set-upstream-to origin/$CIRCLE_BRANCH
+                  echo "Tagging release with '$SEMVER'"
+                  git tag $SEMVER
+                  git push -o ci.skip
+                  git push --tags
 
 workflows:
   test_build_release:
@@ -129,6 +148,3 @@ workflows:
       - deploy_nuget:
           requires:
             - test
-          filters:
-            branches:
-              only: main

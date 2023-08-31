@@ -16,13 +16,14 @@
     <dependencies>
       <group targetFramework="netstandard2.0">
         <dependency id="StackExchange.Redis" version="2.6.104" />
-        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="7.0.1" />
+        <dependency id="Lasso" version="0.9.0" />
+        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="7.0.0" />
         <dependency id="Microsoft.Extensions.Options" version="7.0.1" />
       </group>
     </dependencies>
   </metadata>
   <files>
-    <file src="bin\Debug\netstandard2.0\Lasso.dll" target="lib\netstandard2.0\Lasso.dll" />
+    <file src="bin\Debug\netstandard2.0\Lasso.Extensions.DependencyInjection.dll" target="lib\netstandard2.0\Lasso.Extensions.DependencyInjection.dll" />
     <file src="..\..\README.md" target="docs\" />
     <file src="..\..\LICENSE" target="docs\" />
   </files>
