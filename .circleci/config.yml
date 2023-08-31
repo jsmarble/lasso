@@ -127,7 +127,6 @@ jobs:
             - run:
                 name: Tag Release and Push Changes
                 shell: /bin/bash
-                when: << pipeline.parameters.branch == 'main' >>
                 command: |
                   git branch --set-upstream-to origin/$CIRCLE_BRANCH
                   echo "Tagging release with '$SEMVER'"
