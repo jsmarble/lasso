@@ -112,6 +112,7 @@ jobs:
             
       - store_artifacts:
           path: src/Lasso/nugetpkg
+          destination: nuget
 
       - when:
           condition:
