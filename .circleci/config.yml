@@ -106,9 +106,10 @@ jobs:
             export PATH="$PATH:/root/.dotnet/tools"
             dotnet-gitversion /updateprojectfiles
             dotnet pack
+            export NUGET=$(find bin/Debug -maxdepth 1 -name "*.nupkg")
             
       - store_artifacts:
-          path: src/Lasso/bin/Debug/*.nupkg
+          path: $NUGET
           destination: nuget-package
 
       - when:
