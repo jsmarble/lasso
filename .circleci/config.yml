@@ -106,11 +106,25 @@ jobs:
             export PATH="$PATH:/root/.dotnet/tools"
             dotnet-gitversion /updateprojectfiles
             dotnet pack
-            dotnet nuget push bin/Debug/*.nupkg -s https://api.nuget.org/v3/index.json -k $nuget_api_key
+            # Save the generated NuGet package in the workspace
+            cp bin/Debug/*.nupkg $CIRCLE_ARTIFACTS
 
+      - run:
+          name: Publish NuGet Package
+          shell: /bin/bash
+          when: << pipeline.parameters.branch == 'main' >>
+          command: |
+            cd src/Lasso
+            export PATH="$PATH:/root/.dotnet/tools"
+            dotnet-gitversion /updateprojectfiles
+            echo "Publishing NuGet package..."
+            # Access the NuGet package from the workspace
+            dotnet nuget push $CIRCLE_ARTIFACTS/*.nupkg -s https://api.nuget.org/v3/index.json -k $nuget_api_key
+          
       - run:
           name: Tag Release and Push Changes
           shell: /bin/bash
+          when: << pipeline.parameters.branch == 'main' >>
           command: |
             git branch --set-upstream-to origin/$CIRCLE_BRANCH
             echo "Tagging release with '$SEMVER'"
@@ -129,6 +143,3 @@ workflows:
       - deploy_nuget:
           requires:
             - test
-          filters:
-            branches:
-              only: main
