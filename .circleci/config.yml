@@ -102,16 +102,17 @@ jobs:
           name: Build and Pack
           shell: /bin/bash
           command: |
-            cd src/Lasso
             export PATH="$PATH:/root/.dotnet/tools"
+            cd src/Lasso.Extensions.DependencyInjection
+            dotnet-gitversion /updateprojectfiles
+            cd ../Lasso
             dotnet-gitversion /updateprojectfiles
             mkdir nugetpkg
             dotnet pack --output nugetpkg
-            export NUGET=$(find bin/Debug -maxdepth 1 -name "*.nupkg")
             
       - store_artifacts:
           path: src/Lasso/nugetpkg
-          destination: nuget-package
+          destination: nuget-packages
 
       - when:
           condition:
