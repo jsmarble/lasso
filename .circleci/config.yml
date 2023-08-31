@@ -122,10 +122,10 @@ jobs:
                 name: Publish NuGet Package
                 shell: /bin/bash
                 command: |
-                  cd src/Lasso
                   export PATH="$PATH:/root/.dotnet/tools"
+                  cd src/Lasso/nugetpkg
                   echo "Publishing NuGet package..."
-                  dotnet nuget push nugetpkg/*.nupkg -s https://api.nuget.org/v3/index.json -k $nuget_api_key
+                  dotnet nuget push *.nupkg -s https://api.nuget.org/v3/index.json -k $nuget_api_key
 
             - run:
                 name: Tag Release and Push Changes
