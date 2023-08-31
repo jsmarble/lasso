@@ -2,6 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Authors>Joshua Marble</Authors>
+    <PackageId>Lasso.Extensions.DependencyInjection</PackageId>
+    <Description>Adds dependency injection functionality to Lasso for use in dotnet startup configuration.
+    </Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
