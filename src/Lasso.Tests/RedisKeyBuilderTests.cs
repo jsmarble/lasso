@@ -11,12 +11,7 @@ namespace Lasso.Tests
             string resource = "field_reindex";
             string context = Guid.NewGuid().ToString();
             int quota = 10;
-            UsageRequest req = new UsageRequest
-            {
-                Resource = resource,
-                Quota = quota,
-                Context = context
-            };
+            UsageRequest req = new UsageRequest(resource, context, quota);
             var key = builder.BuildRedisKey(req);
             string expected = $"{DateTime.UtcNow.ToString("yyyyMMddHH")}:{context}";
             Assert.That(key, Is.EqualTo(expected));
@@ -29,12 +24,7 @@ namespace Lasso.Tests
             string resource = "field_reindex";
             string context = Guid.NewGuid().ToString();
             int quota = 10;
-            UsageRequest req = new UsageRequest
-            {
-                Resource = resource,
-                Quota = quota,
-                Context = context
-            };
+            UsageRequest req = new UsageRequest(resource, context, quota);
             var key = builder.BuildRedisKey(req);
             string expected = $"{DateTime.UtcNow.Date.ToString("yyyyMMdd")}:{context}";
             Assert.That(key, Is.EqualTo(expected));
@@ -47,12 +37,7 @@ namespace Lasso.Tests
             string resource = "field_reindex";
             string context = Guid.NewGuid().ToString();
             int quota = 10;
-            UsageRequest req = new UsageRequest
-            {
-                Resource = resource,
-                Quota = quota,
-                Context = context
-            };
+            UsageRequest req = new UsageRequest(resource, context, quota);
             var key = builder.BuildRedisKey(req);
             string expected = $"{DateTime.UtcNow.Date.ToString("yyyyMM01")}:{context}";
             Assert.That(key, Is.EqualTo(expected));

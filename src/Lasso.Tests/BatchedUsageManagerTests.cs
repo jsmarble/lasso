@@ -9,14 +9,8 @@ namespace Lasso.Tests
         [Test]
         public async Task Increment_Calls_Batched()
         {
-            UsageRequest req = new UsageRequest
-            {
-                Context = Guid.NewGuid().ToString(),
-                Quota = 100,
-                Resource = "password_resets"
-            };
+            UsageRequest req = new UsageRequest("password_resets", Guid.NewGuid().ToString(), 100);
             int increments = 10;
-
 
             var usageManagerMock = new Mock<IUsageManager>();
             usageManagerMock.Setup(x => x.IncrementAsync(req, increments, default(CancellationToken)));
@@ -36,12 +30,7 @@ namespace Lasso.Tests
         [Test]
         public async Task Decrement_Calls_Batched()
         {
-            UsageRequest req = new UsageRequest
-            {
-                Context = Guid.NewGuid().ToString(),
-                Quota = 100,
-                Resource = "password_resets"
-            };
+            UsageRequest req = new UsageRequest("password_resets", Guid.NewGuid().ToString(), 100);
             int decrements = 10;
 
             var usageManagerMock = new Mock<IUsageManager>();
@@ -62,12 +51,7 @@ namespace Lasso.Tests
         [Test]
         public async Task Increment_Decrement_Calls_Batched()
         {
-            UsageRequest req = new UsageRequest
-            {
-                Context = Guid.NewGuid().ToString(),
-                Quota = 100,
-                Resource = "password_resets"
-            };
+            UsageRequest req = new UsageRequest("password_resets", Guid.NewGuid().ToString(), 100);
             int increments = 15;
             int decrements = 10;
 
@@ -93,12 +77,7 @@ namespace Lasso.Tests
         [Test]
         public async Task Multiple_Push_Calls_Uses_Relative_Deltas()
         {
-            UsageRequest req = new UsageRequest
-            {
-                Context = Guid.NewGuid().ToString(),
-                Quota = 100,
-                Resource = "password_resets"
-            };
+            UsageRequest req = new UsageRequest("password_resets", Guid.NewGuid().ToString(), 100);
             int increments = 15;
             int decrements = 10;
 
@@ -126,12 +105,7 @@ namespace Lasso.Tests
         [Test]
         public void Dispose_With_Pending_Calls_Push()
         {
-            UsageRequest req = new UsageRequest
-            {
-                Context = Guid.NewGuid().ToString(),
-                Quota = 100,
-                Resource = "password_resets"
-            };
+            UsageRequest req = new UsageRequest("password_resets", Guid.NewGuid().ToString(), 100);
             int increments = 10;
 
             var usageManagerMock = new Mock<IUsageManager>();
@@ -152,12 +126,7 @@ namespace Lasso.Tests
         [Test]
         public void Dispose_Without_Pending_Does_Not_Throw_Exception()
         {
-            UsageRequest req = new UsageRequest
-            {
-                Context = Guid.NewGuid().ToString(),
-                Quota = 100,
-                Resource = "password_resets"
-            };
+            UsageRequest req = new UsageRequest("password_resets", Guid.NewGuid().ToString(), 100);
 
             var usageManagerMock = new Mock<IUsageManager>();
 
@@ -170,12 +139,7 @@ namespace Lasso.Tests
         [Test]
         public async Task One_Million_Increment_Calls_Works_Fast()
         {
-            UsageRequest req = new UsageRequest
-            {
-                Context = Guid.NewGuid().ToString(),
-                Quota = 100,
-                Resource = "password_resets"
-            };
+            UsageRequest req = new UsageRequest("password_resets", Guid.NewGuid().ToString(), 100);
             int increments = 1000000;
 
             Stopwatch sw = Stopwatch.StartNew();

@@ -1,17 +1,20 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using System.Data.Common;
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Lasso
 {
     public class RedisUsageManager : IUsageManager, IDisposable
     {
-        private volatile ConnectionMultiplexer connection;
-        private IDatabase cache;
+        private volatile IConnectionMultiplexer connection;
+        private volatile IDatabase cache;
+
         private bool disposedValue;
         private readonly SemaphoreSlim connectionLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
 
@@ -22,28 +25,28 @@ namespace Lasso
         private readonly IRelativeExpirationStrategy relativeExpirationStrategy;
         private readonly ILogger logger;
 
-        public RedisUsageManager(IOptions<LassoOptions> options, IRedisKeyBuilder redisKeyBuilder, IRelativeExpirationStrategy expirationStrategy, ILogger logger)
-            : this(options, redisKeyBuilder)
+        public RedisUsageManager(IOptions<LassoOptions> options, IRedisKeyBuilder redisKeyBuilder, IRelativeExpirationStrategy expirationStrategy, ILogger logger = null)
+            : this(options, redisKeyBuilder, logger)
         {
-            if (expirationStrategy == null) throw new ArgumentNullException(nameof(expirationStrategy));
+            ArgumentNullThrowHelper.ThrowIfNull(expirationStrategy);
             this.relativeExpirationStrategy = expirationStrategy;
-            this.logger = logger;
         }
 
-        public RedisUsageManager(IOptions<LassoOptions> options, IRedisKeyBuilder redisKeyBuilder, IFixedExpirationStrategy expirationStrategy)
-            : this(options, redisKeyBuilder)
+        public RedisUsageManager(IOptions<LassoOptions> options, IRedisKeyBuilder redisKeyBuilder, IFixedExpirationStrategy expirationStrategy, ILogger logger = null)
+            : this(options, redisKeyBuilder, logger)
         {
-            if (expirationStrategy == null) throw new ArgumentNullException(nameof(expirationStrategy));
+            ArgumentNullThrowHelper.ThrowIfNull(expirationStrategy);
             this.fixedExpirationStrategy = expirationStrategy;
         }
 
-        private RedisUsageManager(IOptions<LassoOptions> options, IRedisKeyBuilder redisKeyBuilder)
+        private RedisUsageManager(IOptions<LassoOptions> options, IRedisKeyBuilder redisKeyBuilder, ILogger logger = null)
         {
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            if (redisKeyBuilder == null) throw new ArgumentNullException(nameof(redisKeyBuilder));
+            ArgumentNullThrowHelper.ThrowIfNull(options);
+            ArgumentNullThrowHelper.ThrowIfNull(redisKeyBuilder);
 
             this.options = options.Value;
             this.keyBuilder = redisKeyBuilder;
+            this.logger = logger ?? NullLoggerFactory.Instance.CreateLogger<RedisUsageManager>();
         }
 
         public async Task<UsageResult> GetAsync(UsageRequest req, CancellationToken token = default(CancellationToken))
@@ -51,19 +54,13 @@ namespace Lasso
             token.ThrowIfCancellationRequested();
             ArgumentNullThrowHelper.ThrowIfNull(req);
 
-            await ConnectAsync(token);
+            await ConnectAsync(token).ConfigureAwait(false);
 
             string key = this.keyBuilder.BuildRedisKey(req);
-            long current = (long)(await this.cache.HashGetAsync(key, req.Resource));
-            await SetExpirationAsync(key);
+            long current = (long)(await this.cache.HashGetAsync(key, req.Resource).ConfigureAwait(false));
+            await SetExpirationAsync(key).ConfigureAwait(false);
 
-            return new UsageResult
-            {
-                Current = current,
-                Resource = req.Resource,
-                Quota = req.Quota,
-                Context = req.Context,
-            };
+            return new UsageResult(req.Resource, req.Context, req.Quota, current);
         }
 
         public async Task<UsageResult> IncrementAsync(UsageRequest req, long increment = 1, CancellationToken token = default(CancellationToken))
@@ -71,19 +68,13 @@ namespace Lasso
             token.ThrowIfCancellationRequested();
             ArgumentNullThrowHelper.ThrowIfNull(req);
 
-            await ConnectAsync(token);
+            await ConnectAsync(token).ConfigureAwait(false);
 
             string key = this.keyBuilder.BuildRedisKey(req);
-            long current = await this.cache.HashIncrementAsync(key, req.Resource, increment);
-            await SetExpirationAsync(key);
+            long current = await this.cache.HashIncrementAsync(key, req.Resource, increment).ConfigureAwait(false);
+            await SetExpirationAsync(key, token).ConfigureAwait(false);
 
-            return new UsageResult
-            {
-                Current = current,
-                Resource = req.Resource,
-                Quota = req.Quota,
-                Context = req.Context,
-            };
+            return new UsageResult(req.Resource, req.Context, req.Quota, current);
         }
 
         public async Task<UsageResult> DecrementAsync(UsageRequest req, long decrement = 1, CancellationToken token = default(CancellationToken))
@@ -91,19 +82,13 @@ namespace Lasso
             token.ThrowIfCancellationRequested();
             ArgumentNullThrowHelper.ThrowIfNull(req);
 
-            await ConnectAsync(token);
+            await ConnectAsync(token).ConfigureAwait(false);
 
             string key = this.keyBuilder.BuildRedisKey(req);
-            long current = await this.cache.HashDecrementAsync(key, req.Resource, decrement);
-            await SetExpirationAsync(key);
+            long current = await this.cache.HashDecrementAsync(key, req.Resource, decrement).ConfigureAwait(false);
+            await SetExpirationAsync(key, token).ConfigureAwait(false);
 
-            return new UsageResult
-            {
-                Current = current,
-                Resource = req.Resource,
-                Quota = req.Quota,
-                Context = req.Context,
-            };
+            return new UsageResult(req.Resource, req.Context, req.Quota, current);
         }
 
         public async Task<UsageResult> ResetAsync(UsageRequest req, long init = 0, CancellationToken token = default(CancellationToken))
@@ -111,19 +96,13 @@ namespace Lasso
             token.ThrowIfCancellationRequested();
             ArgumentNullThrowHelper.ThrowIfNull(req);
 
-            await ConnectAsync(token);
+            await ConnectAsync(token).ConfigureAwait(false);
 
             string key = this.keyBuilder.BuildRedisKey(req);
-            await this.cache.HashSetAsync(key, req.Resource, init);
-            await SetExpirationAsync(key);
+            await this.cache.HashSetAsync(key, req.Resource, init).ConfigureAwait(false);
+            await SetExpirationAsync(key).ConfigureAwait(false);
 
-            return new UsageResult
-            {
-                Current = init,
-                Resource = req.Resource,
-                Quota = req.Quota,
-                Context = req.Context,
-            };
+            return new UsageResult(req.Resource, req.Context, req.Quota, init);
         }
 
         public async Task<DateTime?> GetExpirationAsync(UsageRequest req, CancellationToken token = default(CancellationToken))
@@ -131,31 +110,31 @@ namespace Lasso
             token.ThrowIfCancellationRequested();
             ArgumentNullThrowHelper.ThrowIfNull(req);
 
-            await ConnectAsync(token);
+            await ConnectAsync(token).ConfigureAwait(false);
 
             string key = this.keyBuilder.BuildRedisKey(req);
-            return await this.cache.KeyExpireTimeAsync(key);
+            return await this.cache.KeyExpireTimeAsync(key).ConfigureAwait(false);
         }
 
         private async Task SetExpirationAsync(string key, CancellationToken token = default(CancellationToken))
         {
             token.ThrowIfCancellationRequested();
 
-            await ConnectAsync(token);
+            await ConnectAsync(token).ConfigureAwait(false);
 
             if (relativeExpirationStrategy != null)
             {
                 if (relativeExpirationStrategy.Expiration == TimeSpan.MaxValue)
-                    await this.cache.KeyPersistAsync(key);
+                    await this.cache.KeyPersistAsync(key).ConfigureAwait(false);
                 else
-                    await this.cache.KeyExpireAsync(key, relativeExpirationStrategy.Expiration, relativeExpirationStrategy.Sliding ? ExpireWhen.Always : ExpireWhen.HasNoExpiry);
+                    await this.cache.KeyExpireAsync(key, relativeExpirationStrategy.Expiration, relativeExpirationStrategy.Sliding ? ExpireWhen.Always : ExpireWhen.HasNoExpiry).ConfigureAwait(false);
             }
             else if (fixedExpirationStrategy != null)
             {
                 if (fixedExpirationStrategy.Expiration == DateTime.MaxValue)
-                    await this.cache.KeyPersistAsync(key);
+                    await this.cache.KeyPersistAsync(key).ConfigureAwait(false);
                 else
-                    await this.cache.KeyExpireAsync(key, fixedExpirationStrategy.Expiration);
+                    await this.cache.KeyExpireAsync(key, fixedExpirationStrategy.Expiration).ConfigureAwait(false);
             }
             else
                 Trace.TraceWarning("No key expiration strategy provided. Usage keys will persist for the life of the cluster.");
@@ -170,19 +149,17 @@ namespace Lasso
                 return;
             }
 
-            await connectionLock.WaitAsync(token);
+            await connectionLock.WaitAsync(token).ConfigureAwait(false);
             try
             {
                 if (cache == null)
                 {
-                    if (options.RedisConfigurationOptions != null)
-                    {
+                    if (options.ConnectionMultiplexer != null)
+                        connection = options.ConnectionMultiplexer;
+                    else if (options.RedisConfigurationOptions != null)
                         connection = await ConnectionMultiplexer.ConnectAsync(options.RedisConfigurationOptions);
-                    }
                     else
-                    {
                         connection = await ConnectionMultiplexer.ConnectAsync(options.RedisConfiguration);
-                    }
 
                     cache = connection.GetDatabase();
                 }
@@ -199,21 +176,13 @@ namespace Lasso
             {
                 if (disposing)
                 {
-                    // TODO: dispose managed state (managed objects)
+                    connection.Close();
+                    connection.Dispose();
                 }
 
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
                 disposedValue = true;
             }
         }
-
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~RedisUsageManager()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
 
         public void Dispose()
         {
