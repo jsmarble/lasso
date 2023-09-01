@@ -27,27 +27,23 @@ namespace Lasso.Extensions.DependencyInjection
         public static LassoServiceBuilder AddLasso(this IServiceCollection services, Action<LassoOptions> configureOptionsFactory)
         {
             var builder = services.AddLasso();
-
-            //*** Josh - the connection to the Redis DB - may want to consider moving it to the implementation of the IUsageManager (RedisUsageManager), maybe constructor (see RedisCache from MS).
-            // Then we can just register the options class as per commented line below and the RedisUsageManager can implement the same logic as we do here to start the connection
-            // This is also how MS is doing it with their OOO redis implementation - see RedisCache.cs in .net github repo
-
-            //services.Configure(configureOptions);
-            LassoOptions configureOptions = new LassoOptions();
-            configureOptionsFactory(configureOptions);
-            IConnectionMultiplexer connection = null;
-            if (configureOptions.RedisConfigurationOptions != null)
-            {
-                connection = ConnectionMultiplexer.Connect(configureOptions.RedisConfigurationOptions);
-            }
-            else if(!string.IsNullOrWhiteSpace(configureOptions.RedisConfiguration))
-            {
-                connection = ConnectionMultiplexer.Connect(configureOptions.RedisConfiguration);
-            }
-            if (connection != null)
-            {
-                services.AddSingleton<IConnectionMultiplexer>(connection);
-            }
+            
+            services.Configure(configureOptionsFactory);
+            //LassoOptions configureOptions = new LassoOptions();
+            //configureOptionsFactory(configureOptions);
+            //IConnectionMultiplexer connection = null;
+            //if (configureOptions.RedisConfigurationOptions != null)
+            //{
+            //    connection = ConnectionMultiplexer.Connect(configureOptions.RedisConfigurationOptions);
+            //}
+            //else if(!string.IsNullOrWhiteSpace(configureOptions.RedisConfiguration))
+            //{
+            //    connection = ConnectionMultiplexer.Connect(configureOptions.RedisConfiguration);
+            //}
+            //if (connection != null)
+            //{
+            //    services.AddSingleton<IConnectionMultiplexer>(connection);
+            //}
             
 
             //*** Josh - this is an example
