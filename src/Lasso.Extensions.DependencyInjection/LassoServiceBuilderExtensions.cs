@@ -17,7 +17,7 @@ namespace Lasso.Extensions.DependencyInjection
             if (builder.Services.Any<ServiceDescriptor>((Func<ServiceDescriptor, bool>)(x => x.ServiceType == typeof(IRelativeExpirationStrategy))))
                 throw new InvalidOperationException($"A {nameof(IRelativeExpirationStrategy)} provider has already been registered. Only a single strategy of this type may be registered.");
 
-            builder.Services.TryAddSingleton<IRelativeExpirationStrategy>(s => new TimeSpanExpirationStrategy(expiration, true));
+            builder.Services.TryAddSingleton<IRelativeExpirationStrategy>(s => new TimeSpanExpirationStrategy(expiration, sliding));
             return builder;
         }
 
