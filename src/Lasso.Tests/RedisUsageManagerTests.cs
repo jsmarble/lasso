@@ -80,6 +80,32 @@ namespace Lasso.Tests
         }
 
         [Test]
+        public void Delete_Works_No_Data()
+        {
+            RedisUsageManager usageManager = new RedisUsageManager(options, keyBuilder, expirationStrategy);
+            string resource = "field_reindex";
+            string context = Guid.NewGuid().ToString();
+            int quota = 10;
+            UsageRequest req = new UsageRequest(resource, context, quota);
+            var result = usageManager.DeleteAsync(req).Result;
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public void Delete_Works_With_Data()
+        {
+            RedisUsageManager usageManager = new RedisUsageManager(options, keyBuilder, expirationStrategy);
+            string resource = "field_reindex";
+            string context = Guid.NewGuid().ToString();
+            int quota = 10;
+            UsageRequest req = new UsageRequest(resource, context, quota);
+            var result = usageManager.IncrementAsync(req).Result;
+            Assert.That(result.Current, Is.EqualTo(1));
+            bool del = usageManager.DeleteAsync(req).Result;
+            Assert.That(del, Is.True);
+        }
+
+        [Test]
         public void Reset_Works_No_Data()
         {
             RedisUsageManager usageManager = new RedisUsageManager(options, keyBuilder, expirationStrategy);

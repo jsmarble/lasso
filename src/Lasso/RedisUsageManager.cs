@@ -106,6 +106,20 @@ namespace Lasso
             return new UsageResult(req.Resource, req.Context, req.Quota, init);
         }
 
+        public async Task<bool> DeleteAsync(UsageRequest req, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            ArgumentNullThrowHelper.ThrowIfNull(req);
+
+            await ConnectAsync(token).ConfigureAwait(false);
+
+            string key = this.keyBuilder.BuildRedisKey(req);
+            var deleted = await this.cache.HashDeleteAsync(key, req.Resource).ConfigureAwait(false);
+            await SetExpirationAsync(key).ConfigureAwait(false);
+
+            return deleted;
+        }
+
         public async Task<DateTime?> GetExpirationAsync(UsageRequest req, CancellationToken token = default(CancellationToken))
         {
             token.ThrowIfCancellationRequested();
