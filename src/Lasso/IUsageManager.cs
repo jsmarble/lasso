@@ -11,5 +11,6 @@ namespace Lasso
         Task<DateTime?> GetExpirationAsync(UsageRequest req, CancellationToken token = default(CancellationToken));
         Task<UsageResult> IncrementAsync(UsageRequest req, long increment = 1, CancellationToken token = default(CancellationToken));
         Task<UsageResult> ResetAsync(UsageRequest req, long init = 0, CancellationToken token = default(CancellationToken));
+        Task<bool> DeleteAsync(UsageRequest req, CancellationToken token = default(CancellationToken));
     }
 }
