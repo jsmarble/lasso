@@ -1,4 +1,4 @@
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/jsmarble/lasso/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/jsmarble/lasso/tree/main)
+[![lasso](https://circleci.com/gh/jsmarble/lasso.svg?style=shield)](https://app.circleci.com/pipelines/github/jsmarble/lasso)
 [![Nuget](https://img.shields.io/nuget/dt/Lasso?logo=NuGet&labelColor=%23004880&color=gray)](https://www.nuget.org/packages/Lasso)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](code_of_conduct.md)
 
