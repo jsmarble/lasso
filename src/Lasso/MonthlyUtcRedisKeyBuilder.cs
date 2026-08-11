@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 
 namespace Lasso
 {
@@ -6,7 +7,7 @@ namespace Lasso
     {
         public string BuildRedisKey(UsageRequest usageRequest)
         {
-            return $"{DateTime.UtcNow.Date.ToString("yyyyMM01")}:{usageRequest.Context}";
+            return $"{DateTime.UtcNow.ToString("yyyyMM01", CultureInfo.InvariantCulture)}:{usageRequest.Context}";
         }
     }
 }

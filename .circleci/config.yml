@@ -11,14 +11,14 @@ jobs:
       - run:
           name: Restore Dependencies
           command: |
-            cd src/Lasso
-            dotnet restore
+            dotnet restore src/Lasso/Lasso.sln
+            dotnet restore demo/LassoDemo.csproj
 
       - run:
           name: Build
           command: |
-            cd src/Lasso
-            dotnet build $lib
+            dotnet build src/Lasso/Lasso.sln --no-restore
+            dotnet build demo/LassoDemo.csproj --no-restore
 
   test:
     docker:
