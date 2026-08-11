@@ -2,18 +2,16 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
-using System.Data.Common;
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Threading;
-using System.Net.Sockets;
 
 namespace Lasso
 {
     public class RedisUsageManager : IUsageManager, IDisposable
     {
-        private volatile IConnectionMultiplexer connection;
+        private volatile IConnectionMultiplexer ownedConnection;
         private volatile IDatabase cache;
 
         private bool disposedValue;
@@ -25,6 +23,8 @@ namespace Lasso
         private readonly IFixedExpirationStrategy fixedExpirationStrategy;
         private readonly IRelativeExpirationStrategy relativeExpirationStrategy;
         private readonly ILogger logger;
+
+        private const string MissingConnectionConfigurationMessage = "A Redis connection must be configured with ConnectionMultiplexer, RedisConfigurationOptions, or RedisConfiguration.";
 
         public RedisUsageManager(IOptions<LassoOptions> options, IRedisKeyBuilder redisKeyBuilder, IRelativeExpirationStrategy expirationStrategy, ILogger logger = null)
             : this(options, redisKeyBuilder, logger)
@@ -46,6 +46,9 @@ namespace Lasso
             ArgumentNullThrowHelper.ThrowIfNull(redisKeyBuilder);
 
             this.options = options.Value;
+            if (!HasConnectionConfiguration(this.options))
+                throw new OptionsValidationException(Options.DefaultName, typeof(LassoOptions), new[] { MissingConnectionConfigurationMessage });
+
             this.keyBuilder = redisKeyBuilder;
             this.logger = logger ?? NullLoggerFactory.Instance.CreateLogger<RedisUsageManager>();
         }
@@ -151,8 +154,6 @@ namespace Lasso
                 else
                     await this.cache.KeyExpireAsync(key, fixedExpirationStrategy.Expiration).ConfigureAwait(false);
             }
-            else
-                Trace.TraceWarning("No key expiration strategy provided. Usage keys will persist for the life of the cluster.");
         }
 
         private void CheckDisposed()
@@ -183,14 +184,37 @@ namespace Lasso
                 if (cache is null)
                 {
                     IConnectionMultiplexer connection;
+                    bool ownsConnection;
                     if (options.ConnectionMultiplexer != null)
+                    {
                         connection = options.ConnectionMultiplexer;
+                        ownsConnection = false;
+                    }
                     else if (options.RedisConfigurationOptions != null)
+                    {
                         connection = await ConnectionMultiplexer.ConnectAsync(options.RedisConfigurationOptions);
+                        ownsConnection = true;
+                    }
                     else
+                    {
                         connection = await ConnectionMultiplexer.ConnectAsync(options.RedisConfiguration);
+                        ownsConnection = true;
+                    }
 
-                    cache = this.cache = connection.GetDatabase();
+                    try
+                    {
+                        cache = connection.GetDatabase();
+                    }
+                    catch
+                    {
+                        if (ownsConnection)
+                            ReleaseConnection(connection);
+                        throw;
+                    }
+
+                    if (ownsConnection)
+                        this.ownedConnection = connection;
+                    this.cache = cache;
                 }
                 Debug.Assert(this.cache != null);
                 return cache;
@@ -201,58 +225,16 @@ namespace Lasso
             }
         }
 
-        private void OnRedisError(Exception exception, IDatabase cache)
+
+        private static bool HasConnectionConfiguration(LassoOptions options)
         {
-            if ((exception is RedisConnectionException) || (exception is SocketException))
-            {
-                /*
-                var utcNow = DateTimeOffset.UtcNow;
-                var previousConnectTime = ReadTimeTicks(ref _lastConnectTicks);
-                TimeSpan elapsedSinceLastReconnect = utcNow - previousConnectTime;
-
-                // We want to limit how often we perform this top-level reconnect, so we check how long it's been since our last attempt.
-                if (elapsedSinceLastReconnect < ReconnectMinInterval)
-                {
-                    return;
-                }
-
-                var firstErrorTime = ReadTimeTicks(ref _firstErrorTimeTicks);
-                if (firstErrorTime == DateTimeOffset.MinValue)
-                {
-                    // note: order/timing here (between the two fields) is not critical
-                    WriteTimeTicks(ref _firstErrorTimeTicks, utcNow);
-                    WriteTimeTicks(ref _previousErrorTimeTicks, utcNow);
-                    return;
-                }
-
-                TimeSpan elapsedSinceFirstError = utcNow - firstErrorTime;
-                TimeSpan elapsedSinceMostRecentError = utcNow - ReadTimeTicks(ref _previousErrorTimeTicks);
-
-                bool shouldReconnect =
-                        elapsedSinceFirstError >= ReconnectErrorThreshold // Make sure we gave the multiplexer enough time to reconnect on its own if it could.
-                        && elapsedSinceMostRecentError <= ReconnectErrorThreshold; // Make sure we aren't working on stale data (e.g. if there was a gap in errors, don't reconnect yet).
-
-                // Update the previousErrorTime timestamp to be now (e.g. this reconnect request).
-                WriteTimeTicks(ref _previousErrorTimeTicks, utcNow);
-
-                if (!shouldReconnect)
-                {
-                    return;
-                }
-
-                WriteTimeTicks(ref _firstErrorTimeTicks, DateTimeOffset.MinValue);
-                WriteTimeTicks(ref _previousErrorTimeTicks, DateTimeOffset.MinValue);
-                */
-
-                // wipe the shared field, but *only* if it is still the cache we were
-                // thinking about (once it is null, the next caller will reconnect)
-                ReleaseConnection(Interlocked.CompareExchange(ref this.cache, null, cache));
-            }
+            return options.ConnectionMultiplexer != null
+                || options.RedisConfigurationOptions != null
+                || !string.IsNullOrWhiteSpace(options.RedisConfiguration);
         }
 
-        static void ReleaseConnection(IDatabase cache)
+        private void ReleaseConnection(IConnectionMultiplexer connection)
         {
-            var connection = cache?.Multiplexer;
             if (connection != null)
             {
                 try
@@ -262,7 +244,7 @@ namespace Lasso
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine(ex);
+                    logger.LogWarning(ex, "An error occurred while disposing the Redis connection.");
                 }
             }
         }
@@ -273,7 +255,8 @@ namespace Lasso
             {
                 if (disposing)
                 {
-                    ReleaseConnection(Interlocked.Exchange(ref this.cache, null));
+                    Interlocked.Exchange(ref this.cache, null);
+                    ReleaseConnection(Interlocked.Exchange(ref this.ownedConnection, null));
                 }
 
                 disposedValue = true;

@@ -15,9 +15,9 @@
     <license>docs\LICENSE</license>
     <dependencies>
       <group targetFramework="netstandard2.0">
-        <dependency id="StackExchange.Redis" version="2.6.104" />
-        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="7.0.1" />
-        <dependency id="Microsoft.Extensions.Options" version="7.0.1" />
+        <dependency id="StackExchange.Redis" version="3.1.13" />
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="10.0.11" />
+        <dependency id="Microsoft.Extensions.Options" version="10.0.11" />
       </group>
     </dependencies>
   </metadata>

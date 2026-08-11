@@ -38,19 +38,20 @@ Using Lasso only requires a few things.
 This example builds a composite key for `tenant_abc` per day, as in `20220318:tenant_abc` and expires it after 30 days, thereby keeping daily usage for the trailing 30 days. It increments usage for resource `background_service` and passes a quota value of `100` along with the request/response. It then gets the expiration for the key and displays the results in the console.
 
 ```csharp
-var redis = ConnectionMultiplexer.Connect("10.0.2.12:6379");
+using Microsoft.Extensions.Options;
+
+using var redis = await ConnectionMultiplexer.ConnectAsync("localhost:6379");
 IRedisKeyBuilder keyBuilder = new DailyUtcRedisKeyBuilder();
 IRelativeExpirationStrategy expirationStrategy = new TimeSpanExpirationStrategy(TimeSpan.FromDays(30), sliding: false);
-IUsageManager usageManager = new RedisUsageManager(redis, keyBuilder, expirationStrategy);
+var options = Options.Create(new LassoOptions { ConnectionMultiplexer = redis });
+using var usageManager = new RedisUsageManager(options, keyBuilder, expirationStrategy);
 
-var usage = new UsageRequest
-{
-    Context = "tenant_abc",
-    Resource = "background_service",
-    Quota = 100
-};
+var usage = new UsageRequest("background_service", "tenant_abc", quota: 100);
 
 UsageResult res = await usageManager.IncrementAsync(usage);
-var exp = await usageManager.GetExpirationAsync(usage);
-Console.WriteLine($"Usage: {res.Current} / {res.Quota}, Resets in {exp.Value.Subtract(DateTime.UtcNow).TotalDays} days");
+DateTime? expiration = await usageManager.GetExpirationAsync(usage);
+string resetsIn = expiration.HasValue
+    ? $"{expiration.Value.Subtract(DateTime.UtcNow).TotalDays:F1} days"
+    : "never";
+Console.WriteLine($"Usage: {res.Current} / {res.Quota}, Resets in {resetsIn}");
 ```

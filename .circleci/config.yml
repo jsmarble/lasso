@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: mcr.microsoft.com/dotnet/sdk:6.0-alpine
+      - image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
 
     steps:
       - checkout
@@ -11,18 +11,18 @@ jobs:
       - run:
           name: Restore Dependencies
           command: |
-            cd src/Lasso
-            dotnet restore
+            dotnet restore src/Lasso/Lasso.sln
+            dotnet restore demo/LassoDemo.csproj
 
       - run:
           name: Build
           command: |
-            cd src/Lasso
-            dotnet build $lib
+            dotnet build src/Lasso/Lasso.sln --no-restore
+            dotnet build demo/LassoDemo.csproj --no-restore
 
   test:
     docker:
-      - image: mcr.microsoft.com/dotnet/sdk:6.0-alpine
+      - image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
 
     steps:
       - checkout
@@ -47,7 +47,7 @@ jobs:
 
   semver:
     docker:
-      - image: mcr.microsoft.com/dotnet/sdk:6.0-alpine
+      - image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
 
     steps:
       - checkout
@@ -68,7 +68,7 @@ jobs:
 
   deploy_nuget:
     docker:
-      - image: mcr.microsoft.com/dotnet/sdk:6.0-alpine
+      - image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
 
     steps:
       - run:
