@@ -14,16 +14,17 @@
     <readme>docs\README.md</readme>
     <license>docs\LICENSE</license>
     <dependencies>
-      <group targetFramework="netstandard2.0">
-        <dependency id="StackExchange.Redis" version="2.6.104" />
-        <dependency id="Lasso" version="0.9.0" />
-        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="7.0.0" />
-        <dependency id="Microsoft.Extensions.Options" version="7.0.1" />
+      <group targetFramework="net10.0">
+        <dependency id="StackExchange.Redis" version="3.1.13" />
+        <dependency id="Lasso" version="0.10.4" />
+        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="10.0.11" />
+        <dependency id="Microsoft.Extensions.Hosting" version="10.0.11" />
+        <dependency id="Microsoft.Extensions.Options" version="10.0.11" />
       </group>
     </dependencies>
   </metadata>
   <files>
-    <file src="bin\Debug\netstandard2.0\Lasso.Extensions.DependencyInjection.dll" target="lib\netstandard2.0\Lasso.Extensions.DependencyInjection.dll" />
+    <file src="bin\Debug\net10.0\Lasso.Extensions.DependencyInjection.dll" target="lib\net10.0\Lasso.Extensions.DependencyInjection.dll" />
     <file src="..\..\README.md" target="docs\" />
     <file src="..\..\LICENSE" target="docs\" />
   </files>

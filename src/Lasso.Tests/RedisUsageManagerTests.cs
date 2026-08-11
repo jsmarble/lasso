@@ -11,7 +11,7 @@ namespace Lasso.Tests
         IRelativeExpirationStrategy expirationStrategy;
         IOptions<LassoOptions> options;
 
-        const string REDIS_URI = "127.0.0.1:6379";
+        static readonly string REDIS_URI = Environment.GetEnvironmentVariable("LASSO_TEST_REDIS_URI") ?? "127.0.0.1:6379";
 
         [SetUp]
         public void Setup()
@@ -21,6 +21,12 @@ namespace Lasso.Tests
             options = Options.Create<LassoOptions>(new LassoOptions { ConnectionMultiplexer = muxer });
             keyBuilder = new DailyUtcRedisKeyBuilder();
             expirationStrategy = new TimeSpanExpirationStrategy(TimeSpan.FromHours(1), false);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            muxer.Dispose();
         }
 
         [Test]

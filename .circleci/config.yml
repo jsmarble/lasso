@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: mcr.microsoft.com/dotnet/sdk:6.0-alpine
+      - image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
 
     steps:
       - checkout
@@ -22,7 +22,7 @@ jobs:
 
   test:
     docker:
-      - image: mcr.microsoft.com/dotnet/sdk:6.0-alpine
+      - image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
 
     steps:
       - checkout
@@ -47,7 +47,7 @@ jobs:
 
   semver:
     docker:
-      - image: mcr.microsoft.com/dotnet/sdk:6.0-alpine
+      - image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
 
     steps:
       - checkout
@@ -68,7 +68,7 @@ jobs:
 
   deploy_nuget:
     docker:
-      - image: mcr.microsoft.com/dotnet/sdk:6.0-alpine
+      - image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
 
     steps:
       - run:
