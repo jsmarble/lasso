@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: mcr.microsoft.com/dotnet/sdk:10.0-resolute
+      - image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
 
     steps:
       - checkout
@@ -22,7 +22,7 @@ jobs:
 
   test:
     docker:
-      - image: mcr.microsoft.com/dotnet/sdk:10.0-resolute
+      - image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
 
     steps:
       - checkout
@@ -30,8 +30,7 @@ jobs:
       - run:
           name: Start Redis
           command: |
-            apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends redis-server
+            apk add redis
             redis-server --daemonize yes
 
       - run:
@@ -48,7 +47,7 @@ jobs:
 
   semver:
     docker:
-      - image: mcr.microsoft.com/dotnet/sdk:10.0-resolute
+      - image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
 
     steps:
       - checkout
@@ -57,7 +56,7 @@ jobs:
           name: Install GitVersion
           command: |
             apk add --no-cache bash
-            dotnet tool install --global gitversion.tool
+            dotnet tool install --global gitversion.tool --version 5.*
 
       - run:
           name: Get Version
@@ -71,15 +70,14 @@ jobs:
 
   deploy_nuget:
     docker:
-      - image: mcr.microsoft.com/dotnet/sdk:10.0-resolute
+      - image: mcr.microsoft.com/dotnet/sdk:10.0-alpine
 
     steps:
       - run:
           name: Install GitVersion and ssh
           command: |
-            apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends bash openssh-client
-            dotnet tool install --global gitversion.tool
+            apk add --no-cache bash openssh-client
+            dotnet tool install --global gitversion.tool --version 5.*
 
       - add_ssh_keys:
             fingerprints:
