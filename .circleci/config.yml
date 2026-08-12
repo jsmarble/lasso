@@ -55,10 +55,12 @@ jobs:
       - run:
           name: Install GitVersion
           command: |
+            apk add --no-cache bash
             dotnet tool install --global gitversion.tool
 
       - run:
           name: Get Version
+          shell: /bin/bash
           command: |
             export PATH="$PATH:/root/.dotnet/tools"
             SEMVER=$(dotnet-gitversion /showvariable SemVer)
