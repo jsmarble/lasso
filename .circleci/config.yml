@@ -56,8 +56,7 @@ jobs:
       - run:
           name: Install GitVersion
           command: |
-            apk add --no-cache bash
-            dotnet tool install --global gitversion.tool
+            dotnet tool install --global gitversion.tool --version 6.8.2
 
       - run:
           name: Get Version
@@ -79,7 +78,7 @@ jobs:
           command: |
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends bash openssh-client
-            dotnet tool install --global gitversion.tool
+            dotnet tool install --global gitversion.tool --version 6.8.2
 
       - add_ssh_keys:
             fingerprints:

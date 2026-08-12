@@ -1,14 +1,19 @@
-mode: Mainline
+workflow: GitHubFlow/v1
+label: null
+strategies:
+  - Mainline
 branches:
   main:
     regex: ^master$|^main$
-    tag: ''
+    label: null
+    mode: ContinuousDeployment
     increment: Patch
-  branch:
-    regex: ^[^\s\\]$
-    source-branches: ['master', 'main', 'feature']
-    tag: Alpha
+    is-main-branch: true
+  unknown:
+    regex: (?<BranchName>.+)
+    label: '{BranchName}'
     increment: Patch
+    source-branches:
+      - main
 ignore:
   sha: []
-merge-message-formats: {}
